@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit 3: Seaside Fun</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Baloo 2', cursive;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 60%, #F5DEB3 100%);
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-front { background-color: #0ea5e9; color: white; font-size: 2rem; }
+        .card-back { background-color: white; transform: rotateY(180deg); font-size: 3rem; border: 4px solid #0ea5e9; color: #0284c7; }
+        
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="%230284c7" fill-opacity="0.5" d="M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,144C672,139,768,181,864,197.3C960,213,1056,203,1152,176C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            background-size: cover;
+            animation: moveWaves 10s linear infinite;
+        }
+        @keyframes moveWaves {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center pt-8">
+
+    <div class="z-10 bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-8 w-11/12 max-w-4xl text-center relative border-4 border-sky-300">
+        <h1 class="text-5xl text-sky-600 mb-2 font-extrabold drop-shadow-md">Unit 3: Seaside Fun</h1>
+        <p class="text-sky-800 mb-6 text-xl">Vocabulary: sea, sail, sand</p>
+
+        <!-- Memory Match -->
+        <div id="memory-game">
+            <h2 class="text-2xl mb-4 text-orange-500 font-bold">Match the pictures with the words!</h2>
+            <div id="grid" class="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 h-64">
+                <!-- Cards injected here -->
+            </div>
+            <div id="msg" class="text-2xl font-bold text-green-600 h-10"></div>
+        </div>
+
+        <!-- Fill in blanks -->
+        <div id="sentence-game" class="hidden">
+            <h2 class="text-3xl mb-8 text-orange-500 font-bold">Complete the Sentence</h2>
+            <div class="text-4xl bg-sky-100 p-8 rounded-2xl mb-8 flex justify-center items-center gap-4 shadow-inner">
+                <span>Let's look at the</span>
+                <div id="blank" class="w-32 h-14 border-b-4 border-sky-800 text-sky-600 flex items-center justify-center font-bold"></div>
+                <span>!</span>
+            </div>
+            <div class="flex justify-center gap-6">
+                <button onclick="checkAnswer('sail')" class="bg-yellow-400 hover:bg-yellow-500 text-white text-3xl py-4 px-10 rounded-2xl shadow-lg transform transition hover:-translate-y-2">sail</button>
+                <button onclick="checkAnswer('sea')" class="bg-sky-400 hover:bg-sky-500 text-white text-3xl py-4 px-10 rounded-2xl shadow-lg transform transition hover:-translate-y-2">sea</button>
+                <button onclick="checkAnswer('sand')" class="bg-orange-400 hover:bg-orange-500 text-white text-3xl py-4 px-10 rounded-2xl shadow-lg transform transition hover:-translate-y-2">sand</button>
+            </div>
+            <div id="sentence-msg" class="mt-8 text-2xl font-bold text-green-600 h-10"></div>
+        </div>
+    </div>
+
+    <div class="wave"></div>
+    <div class="wave" style="animation-delay: -5s; opacity: 0.7; bottom: -20px;"></div>
+
+    <script>
+        // Memory Game Logic
+        const items = [
+            { id: 1, type: 'img', val: '🌊', match: 'sea' },
+            { id: 2, type: 'word', val: 'sea', match: 'sea' },
+            { id: 3, type: 'img', val: '⛵', match: 'sail' },
+            { id: 4, type: 'word', val: 'sail', match: 'sail' },
+            { id: 5, type: 'img', val: '🏖️', match: 'sand' },
+            { id: 6, type: 'word', val: 'sand', match: 'sand' }
+        ];
+
+        let flippedCards = [];
+        let matchedPairs = 0;
+
+        function initMemory() {
+            const grid = document.getElementById('grid');
+            const shuffled = items.sort(() => Math.random() - 0.5);
+            
+            shuffled.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card h-28';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">?</div>
+                        <div class="card-back">${item.val}</div>
+                    </div>
+                `;
+                card.onclick = () => flipCard(card, item);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card, item) {
+            if (card.classList.contains('flipped') || flippedCards.length >= 2) return;
+            
+            card.classList.add('flipped');
+            flippedCards.push({ card, item });
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const match = card1.item.match === card2.item.match && card1.item.type !== card2.item.type;
+
+            if (match) {
+                matchedPairs++;
+                document.getElementById('msg').innerText = "Great match! ⭐";
+                flippedCards = [];
+                if (matchedPairs === 3) {
+                    setTimeout(() => {
+                        document.getElementById('memory-game').classList.add('hidden');
+                        document.getElementById('sentence-game').classList.remove('hidden');
+                    }, 2000);
+                }
+            } else {
+                document.getElementById('msg').innerText = "Try again!";
+                document.getElementById('msg').classList.replace('text-green-600', 'text-red-500');
+                setTimeout(() => {
+                    card1.card.classList.remove('flipped');
+                    card2.card.classList.remove('flipped');
+                    flippedCards = [];
+                    document.getElementById('msg').innerText = "";
+                    document.getElementById('msg').classList.replace('text-red-500', 'text-green-600');
+                }, 1000);
+            }
+        }
+
+        function checkAnswer(ans) {
+            if(ans === 'sea') {
+                document.getElementById('blank').innerText = "sea";
+                document.getElementById('sentence-msg').innerText = "Perfect! You completed Unit 3! 🎉";
+                setTimeout(() => {
+                    location.reload();
+                }, 4000);
+            } else {
+                document.getElementById('sentence-msg').innerText = "Oops! Look at the picture in the worksheet. It's the sea!";
+                document.getElementById('sentence-msg').classList.replace('text-green-600', 'text-red-500');
+                setTimeout(() => {
+                    document.getElementById('sentence-msg').innerText = "";
+                    document.getElementById('sentence-msg').classList.replace('text-red-500', 'text-green-600');
+                }, 2000);
+            }
+        }
+
+        window.onload = initMemory;
+    </script>
+</body>
+</html>

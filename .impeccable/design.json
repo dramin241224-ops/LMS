@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T12:11:50Z",
+  "title": "Design System: Primary English Quest",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Meadow Green", "canonical": "#1F7E37" },
+      "secondary": { "role": "secondary", "displayName": "River Azure", "canonical": "#1864B8" },
+      "accent": { "role": "accent", "displayName": "Vermilion Stamp Red", "canonical": "#C8351B" },
+      "neutral-bg": { "role": "neutral", "displayName": "Map Parchment", "canonical": "#FBF6E8" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero and stage headings" },
+      "body": { "displayName": "Body", "purpose": "Vocabulary and sentence text" }
+    }
+  },
+  "narrative": {
+    "northStar": "The Countryside Explorer Passport",
+    "overview": "A sunlit, tactile learning surface designed for Vietnamese Grade 2 English learners and primary teachers."
+  }
+}
+

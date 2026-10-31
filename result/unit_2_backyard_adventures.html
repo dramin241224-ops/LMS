@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit 2: Backyard Adventures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .fredoka {
+            font-family: 'Fredoka One', cursive;
+        }
+        .drag-item {
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+        .drag-item:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+        .drop-zone {
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .drop-zone.hover {
+            background-color: #d1fae5;
+            border-color: #10b981;
+        }
+        .hidden { display: none !important; }
+        .bounce-in {
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center py-10">
+
+    <div class="bg-white rounded-3xl shadow-2xl p-8 w-11/12 max-w-3xl text-center relative border-8 border-green-300 bounce-in">
+        <div id="score-board" class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 px-4 py-2 rounded-full font-bold fredoka shadow-md">
+            Score: <span id="score">0</span>
+        </div>
+
+        <h1 class="text-4xl text-green-600 mb-2 fredoka drop-shadow-md">Unit 2: In the Backyard</h1>
+        <p class="text-gray-500 mb-8 font-bold">Learn: kite, bike, kitten</p>
+
+        <!-- Menu Screen -->
+        <div id="screen-menu">
+            <h2 class="text-2xl mb-6 text-pink-500 fredoka">Are you ready to play?</h2>
+            <div class="flex justify-center gap-6 text-6xl mb-8">
+                <span class="animate-bounce" style="animation-delay: 0.1s">🪁</span>
+                <span class="animate-bounce" style="animation-delay: 0.2s">🚲</span>
+                <span class="animate-bounce" style="animation-delay: 0.3s">🐱</span>
+            </div>
+            <button onclick="startGame(1)" class="bg-green-500 hover:bg-green-600 text-white text-2xl py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 fredoka">
+                Start Level 1
+            </button>
+        </div>
+
+        <!-- Level 1: Drag and Drop -->
+        <div id="screen-level1" class="hidden">
+            <h2 class="text-2xl mb-2 text-purple-600 fredoka">Level 1: Match the Words</h2>
+            <p class="mb-6 text-gray-600">Drag the correct word to the picture!</p>
+            
+            <div class="flex justify-center gap-8 mb-8" id="drop-container">
+                <div class="flex flex-col items-center">
+                    <div class="text-6xl mb-4 bg-blue-100 p-6 rounded-2xl shadow-inner">🪁</div>
+                    <div class="drop-zone w-32 h-16 border-4 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-xl font-bold text-gray-400" data-word="kite">Drop Here</div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="text-6xl mb-4 bg-pink-100 p-6 rounded-2xl shadow-inner">🐱</div>
+                    <div class="drop-zone w-32 h-16 border-4 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-xl font-bold text-gray-400" data-word="kitten">Drop Here</div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="text-6xl mb-4 bg-yellow-100 p-6 rounded-2xl shadow-inner">🚲</div>
+                    <div class="drop-zone w-32 h-16 border-4 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-xl font-bold text-gray-400" data-word="bike">Drop Here</div>
+                </div>
+            </div>
+
+            <div class="flex justify-center gap-4 bg-gray-100 p-4 rounded-xl shadow-inner" id="drag-container">
+                <!-- Draggable items injected by JS -->
+            </div>
+            <div id="level1-msg" class="mt-4 text-xl font-bold fredoka text-green-500 h-8"></div>
+        </div>
+
+        <!-- Level 2: Unscramble -->
+        <div id="screen-level2" class="hidden">
+            <h2 class="text-2xl mb-2 text-blue-600 fredoka">Level 2: Unscramble the Word</h2>
+            <p class="mb-6 text-gray-600">Click the letters in the correct order!</p>
+            
+            <div class="text-7xl mb-6 bg-purple-100 p-8 rounded-3xl shadow-inner inline-block" id="unscramble-emoji">🐱</div>
+            
+            <div id="word-slots" class="flex justify-center gap-3 mb-8 h-16">
+                <!-- Slots -->
+            </div>
+
+            <div id="letter-options" class="flex justify-center gap-3">
+                <!-- Letters -->
+            </div>
+            <div id="level2-msg" class="mt-6 text-xl font-bold fredoka text-green-500 h-8"></div>
+        </div>
+
+        <!-- Win Screen -->
+        <div id="screen-win" class="hidden">
+            <h2 class="text-4xl mb-6 text-yellow-500 fredoka animate-pulse">You Win! 🎉</h2>
+            <p class="text-xl text-gray-700 mb-8">Great job learning about the backyard!</p>
+            <button onclick="location.reload()" class="bg-blue-500 hover:bg-blue-600 text-white text-2xl py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 fredoka">
+                Play Again
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        let score = 0;
+        const words = ['kite', 'bike', 'kitten'];
+        let matchesFound = 0;
+
+        // Level 1 logic
+        function startGame(level) {
+            document.getElementById('screen-menu').classList.add('hidden');
+            if(level === 1) {
+                document.getElementById('screen-level1').classList.remove('hidden');
+                setupLevel1();
+            }
+        }
+
+        function updateScore(points) {
+            score += points;
+            document.getElementById('score').innerText = score;
+        }
+
+        function setupLevel1() {
+            const dragContainer = document.getElementById('drag-container');
+            let shuffledWords = [...words].sort(() => Math.random() - 0.5);
+            
+            shuffledWords.forEach(word => {
+                const el = document.createElement('div');
+                el.className = 'drag-item bg-white border-2 border-gray-300 px-6 py-2 rounded-lg font-bold text-xl text-blue-600 shadow-sm fredoka';
+                el.draggable = true;
+                el.innerText = word;
+                el.dataset.word = word;
+                
+                el.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', e.target.dataset.word);
+                    setTimeout(() => e.target.classList.add('opacity-50'), 0);
+                });
+                el.addEventListener('dragend', (e) => {
+                    e.target.classList.remove('opacity-50');
+                });
+                
+                dragContainer.appendChild(el);
+            });
+
+            const dropZones = document.querySelectorAll('.drop-zone');
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('hover');
+                });
+                zone.addEventListener('dragleave', (e) => {
+                    zone.classList.remove('hover');
+                });
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('hover');
+                    const draggedWord = e.dataTransfer.getData('text/plain');
+                    
+                    if(draggedWord === zone.dataset.word) {
+                        zone.innerText = draggedWord;
+                        zone.classList.remove('border-dashed', 'border-gray-300', 'text-gray-400');
+                        zone.classList.add('bg-green-500', 'border-green-600', 'text-white', 'fredoka');
+                        
+                        // Remove from drag container
+                        const draggable = document.querySelector(`.drag-item[data-word="${draggedWord}"]`);
+                        if(draggable) draggable.remove();
+                        
+                        updateScore(10);
+                        matchesFound++;
+                        document.getElementById('level1-msg').innerText = "Correct! ✨";
+                        
+                        if(matchesFound === 3) {
+                            setTimeout(() => {
+                                document.getElementById('screen-level1').classList.add('hidden');
+                                document.getElementById('screen-level2').classList.remove('hidden');
+                                setupLevel2();
+                            }, 1500);
+                        }
+                    } else {
+                        document.getElementById('level1-msg').innerText = "Oops, try again!";
+                        document.getElementById('level1-msg').classList.replace('text-green-500', 'text-red-500');
+                        setTimeout(() => {
+                            document.getElementById('level1-msg').innerText = "";
+                            document.getElementById('level1-msg').classList.replace('text-red-500', 'text-green-500');
+                        }, 1000);
+                    }
+                });
+            });
+        }
+
+        // Level 2 Logic (Unscramble)
+        const lv2Words = [
+            { word: 'kitten', emoji: '🐱' },
+            { word: 'bike', emoji: '🚲' }
+        ];
+        let currentWordIdx = 0;
+        let spelledWord = "";
+
+        function setupLevel2() {
+            if(currentWordIdx >= lv2Words.length) {
+                document.getElementById('screen-level2').classList.add('hidden');
+                document.getElementById('screen-win').classList.remove('hidden');
+                return;
+            }
+            
+            spelledWord = "";
+            const current = lv2Words[currentWordIdx];
+            document.getElementById('unscramble-emoji').innerText = current.emoji;
+            
+            const slots = document.getElementById('word-slots');
+            slots.innerHTML = '';
+            for(let i=0; i<current.word.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'w-12 h-16 border-b-4 border-gray-400 flex items-center justify-center text-3xl font-bold text-blue-600 fredoka uppercase';
+                slots.appendChild(slot);
+            }
+
+            const letters = document.getElementById('letter-options');
+            letters.innerHTML = '';
+            const shuffledLetters = current.word.split('').sort(() => Math.random() - 0.5);
+            
+            shuffledLetters.forEach((letter, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-14 h-14 bg-pink-400 text-white rounded-xl text-2xl font-bold shadow-md transform transition hover:-translate-y-1 fredoka uppercase';
+                btn.innerText = letter;
+                btn.onclick = () => handleLetterClick(btn, letter, current.word);
+                letters.appendChild(btn);
+            });
+        }
+
+        function handleLetterClick(btn, letter, targetWord) {
+            if(spelledWord.length >= targetWord.length) return;
+            
+            btn.classList.add('opacity-0', 'pointer-events-none'); // hide button
+            
+            const slots = document.getElementById('word-slots').children;
+            slots[spelledWord.length].innerText = letter;
+            spelledWord += letter;
+
+            if(spelledWord.length === targetWord.length) {
+                if(spelledWord === targetWord) {
+                    updateScore(20);
+                    document.getElementById('level2-msg').innerText = "Excellent! 🌟";
+                    currentWordIdx++;
+                    setTimeout(() => {
+                        document.getElementById('level2-msg').innerText = "";
+                        setupLevel2();
+                    }, 1500);
+                } else {
+                    document.getElementById('level2-msg').innerText = "Try again!";
+                    document.getElementById('level2-msg').classList.replace('text-green-500', 'text-red-500');
+                    setTimeout(() => {
+                        document.getElementById('level2-msg').innerText = "";
+                        document.getElementById('level2-msg').classList.replace('text-red-500', 'text-green-500');
+                        setupLevel2(); // reset
+                    }, 1000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
