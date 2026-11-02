@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Game Đào Vàng — Gold Miner Classic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sky: #70C5FF;
+      --ground: #3C2415;
+      --underground: #26160B;
+      --gold: #FFD214;
+      --gold-dark: #D49B00;
+      --accent: #FF4742;
+      --wood: #8B4513;
+      --wood-dark: #5C2E0B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: #110B07;
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+      color: #FFFFFF;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      aspect-ratio: 16 / 10;
+      max-height: 94vh;
+      background: #1E120A;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 6px var(--wood-dark);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .hud-chip {
+      background: rgba(30, 18, 10, 0.88);
+      border: 3px solid #D49B00;
+      border-radius: 16px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      pointer-events: auto;
+    }
+
+    .hud-val {
+      color: var(--gold);
+      font-size: 1.35rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hud-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-icon {
+      background: var(--wood);
+      border: 3px solid #F3C35C;
+      border-radius: 14px;
+      color: #FFF;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: 0 4px 0 var(--wood-dark);
+      pointer-events: auto;
+      transition: transform 0.1s;
+    }
+
+    .btn-icon:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--wood-dark);
+    }
+
+    /* Canvas */
+    #canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: pointer;
+    }
+
+    /* Touch Bottom Controls for Mobile/Tablet */
+    #mobile-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 12;
+    }
+
+    .mob-btn {
+      pointer-events: auto;
+      border-radius: 999px;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: #FFF;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      border: 4px solid #FFF;
+      transition: transform 0.1s;
+    }
+
+    .mob-btn:active {
+      transform: scale(0.94);
+    }
+
+    #btn-dynamite {
+      background: linear-gradient(180deg, #FF6B4A 0%, #D42E12 100%);
+      padding: 12px 20px;
+      position: relative;
+    }
+
+    #btn-drop {
+      background: linear-gradient(180deg, #48B858 0%, #1F7E37 100%);
+      padding: 14px 34px;
+      font-size: 1.45rem;
+      border-color: #A3F2AD;
+    }
+
+    /* Overlay Screens (Start, Shop, Game Over, Victory) */
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 10, 6, 0.92);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 30;
+      gap: 18px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .screen-overlay.hidden {
+      display: none !important;
+    }
+
+    .screen-title {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      color: var(--gold);
+      text-shadow: 0 4px 0 #8B5800, 0 8px 24px rgba(255, 210, 20, 0.4);
+      letter-spacing: 0.02em;
+    }
+
+    .screen-desc {
+      font-size: 1.2rem;
+      color: #E6D2B5;
+      max-width: 580px;
+      line-height: 1.5;
+    }
+
+    .btn-main {
+      background: linear-gradient(180deg, #FFD214 0%, #D49B00 100%);
+      color: #3C2415;
+      font-family: inherit;
+      font-size: 1.6rem;
+      font-weight: 800;
+      padding: 16px 44px;
+      border-radius: 999px;
+      border: 4px solid #FFF5CC;
+      box-shadow: 0 8px 0 #8B5800, 0 12px 26px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+
+    .btn-main:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 0 #8B5800, 0 14px 28px rgba(0,0,0,0.5);
+    }
+
+    .btn-main:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 #8B5800;
+    }
+
+    /* Shop Items Grid */
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 680px;
+      margin: 10px 0;
+    }
+
+    .shop-card {
+      background: #2C1A0E;
+      border: 3px solid #6E421E;
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    .shop-card.bought {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .shop-icon {
+      font-size: 2.8rem;
+    }
+
+    .shop-name {
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #FFECC7;
+    }
+
+    .shop-desc {
+      font-size: 0.85rem;
+      color: #B59B80;
+      min-height: 34px;
+    }
+
+    .btn-buy {
+      background: #48B858;
+      border: 2px solid #A3F2AD;
+      border-bottom-width: 4px;
+      color: #FFF;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 1.05rem;
+      padding: 8px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .btn-buy:disabled {
+      background: #555;
+      border-color: #777;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 600px) {
+      #hud {
+        height: 60px;
+        padding: 6px 10px;
+      }
+      .hud-chip {
+        font-size: 0.95rem;
+        padding: 4px 8px;
+      }
+      .hud-val {
+        font-size: 1.1rem;
+      }
+      .shop-grid {
+        grid-template-columns: 1fr;
+        max-height: 52vh;
+        overflow-y: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- Top HUD -->
+    <header id="hud">
+      <div class="hud-chip">
+        <span>Tiền:</span>
+        <span id="val-score" class="hud-val">$0</span>
+      </div>
+      <div class="hud-chip">
+        <span>Mục tiêu:</span>
+        <span id="val-target" class="hud-val">$650</span>
+      </div>
+      <div class="hud-chip">
+        <span>Thời gian:</span>
+        <span id="val-time" class="hud-val">60s</span>
+      </div>
+      <div class="hud-controls">
+        <div class="hud-chip" title="Mìn phá đá (Nhấn Mũi Tên Lên hoặc nút Mìn)">
+          <span>🧨</span>
+          <span id="val-dynamite" class="hud-val">x1</span>
+        </div>
+        <button id="btn-audio" class="btn-icon" title="Bật/Tắt âm thanh">🔊</button>
+      </div>
+    </header>
+
+    <!-- Canvas Rendering -->
+    <canvas id="canvas" width="960" height="600"></canvas>
+
+    <!-- Mobile Action Buttons -->
+    <div id="mobile-controls">
+      <button id="btn-dynamite" class="mob-btn" title="Ném mìn phá hủy vật nặng đang kéo">
+        <span>🧨 Phá đá (UP)</span>
+      </button>
+      <button id="btn-drop" class="mob-btn" title="Bắn móc câu">
+        <span>⚓ THẢ MÓC (SPACE)</span>
+      </button>
+    </div>
+
+    <!-- Screen 1: Start Menu -->
+    <div id="screen-start" class="screen-overlay">
+      <h1 class="screen-title">ĐÀO VÀNG CLASSIC</h1>
+      <p class="screen-desc">
+        Điều khiển thợ mỏ thả móc câu chuẩn xác để kéo vàng, kim cương và túi bí mật. Tránh kéo trúng đá tảng nặng nề nhé!
+      </p>
+      <div style="font-size: 1.05rem; color: #FFD214; background: rgba(0,0,0,0.4); padding: 8px 18px; border-radius: 12px;">
+        💡 <b>Phím bấm:</b> [MŨI TÊN XUỐNG] hoặc [SPACE] để thả móc · [MŨI TÊN LÊN] để ném mìn phá đá
+      </div>
+      <button id="btn-play-start" class="btn-main">BẮT ĐẦU CHƠI</button>
+    </div>
+
+    <!-- Screen 2: Shop / Next Level -->
+    <div id="screen-shop" class="screen-overlay hidden">
+      <h2 class="screen-title">CỬA HÀNG THỢ MỎ</h2>
+      <p class="screen-desc" id="shop-summary">Chúc mừng qua màn! Bạn có muốn mua thêm trang bị cho ngày tiếp theo?</p>
+      
+      <div class="shop-grid" id="shop-items">
+        <!-- Dynamically injected shop items -->
+      </div>
+
+      <button id="btn-next-level" class="btn-main">SANG NGÀY TIẾP THEO →</button>
+    </div>
+
+    <!-- Screen 3: Game Over -->
+    <div id="screen-gameover" class="screen-overlay hidden">
+      <h2 class="screen-title" style="color: #FF4742;">HẾT GIỜ!</h2>
+      <p class="screen-desc" id="gameover-desc">Rất tiếc! Bạn chưa đạt đủ số tiền mục tiêu của ngày hôm nay.</p>
+      <button id="btn-restart" class="btn-main">CHƠI LẠI TỪ ĐẦU</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // --- PROCEDURAL SOUND SYNTHESIZER (WEB AUDIO API) ---
+      let audioCtx = null;
+      let soundEnabled = true;
+
+      function getAudioContext() {
+        if (!soundEnabled) return null;
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioClass) return null;
+        if (!audioCtx) audioCtx = new AudioClass();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+      }
+
+      function playSfx(type) {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (type === 'shoot') {
+          // Swoosh sound
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(480, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.18);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } else if (type === 'catch') {
+          // Metallic latch clink
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.setValueAtTime(640, now + 0.04);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.13);
+        } else if (type === 'gold') {
+          // Cash coin chime
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.06);
+            gain.gain.setValueAtTime(0.18, now + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.22);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.06);
+            osc.stop(now + i * 0.06 + 0.23);
+          });
+        } else if (type === 'rock') {
+          // Dull thud
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.25);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.26);
+        } else if (type === 'tnt') {
+          // Explosion noise
+          const bufferSize = ctx.sampleRate * 0.4;
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(800, now);
+          filter.frequency.exponentialRampToValueAtTime(80, now + 0.38);
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.45, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(now);
+          noise.stop(now + 0.4);
+        } else if (type === 'win') {
+          // Victory fanfare
+          [440, 554.37, 659.25, 880].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.2, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.36);
+          });
+        }
+      }
+
+      // --- GAME STATE & CONSTANTS ---
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      const MINER_X = W / 2;
+      const MINER_Y = 100;
+
+      const STATE = {
+        level: 1,
+        score: 0,
+        targetScore: 650,
+        timeLeft: 60,
+        dynamite: 1,
+        strengthDrink: false,
+        diamondPolish: false,
+        luckyClover: false,
+        isPlaying: false,
+        isPaused: false
+      };
+
+      let timerInterval = null;
+
+      // Hook Model
+      const hook = {
+        x: MINER_X,
+        y: MINER_Y,
+        angle: 0,
+        angleSpeed: 0.024,
+        angleDir: 1,
+        maxAngle: Math.PI * 0.38,
+        length: 45,
+        minLen: 45,
+        maxLen: 580,
+        speed: 12,
+        baseSpeed: 12,
+        state: 'SWING', // 'SWING', 'SHOOT', 'REWIND'
+        caughtItem: null
+      };
+
+      // Items in ground
+      let items = [];
+      let particles = [];
+      let floatingTexts = [];
+
+      // --- ITEM TYPES DEFINITION ---
+      const ITEM_TYPES = {
+        GOLD_S: { type: 'gold_s', value: 100, radius: 18, weight: 1.2, color: '#FFD700', label: 'Vàng nhỏ' },
+        GOLD_M: { type: 'gold_m', value: 250, radius: 28, weight: 2.2, color: '#FFC400', label: 'Vàng vừa' },
+        GOLD_L: { type: 'gold_l', value: 500, radius: 42, weight: 4.2, color: '#FFB300', label: 'Vàng to' },
+        ROCK_S: { type: 'rock_s', value: 20, radius: 22, weight: 4.5, color: '#88847E', label: 'Đá nhỏ' },
+        ROCK_L: { type: 'rock_l', value: 50, radius: 36, weight: 7.5, color: '#736F6A', label: 'Đá tảng' },
+        DIAMOND: { type: 'diamond', value: 600, radius: 14, weight: 0.8, color: '#4DEEEA', label: 'Kim cương' },
+        TNT: { type: 'tnt', value: 0, radius: 20, weight: 1.0, color: '#FF3824', label: 'Thùng thuốc nổ' },
+        MYSTERY: { type: 'mystery', value: 150, radius: 24, weight: 2.0, color: '#C86D3B', label: 'Túi bí ẩn' }
+      };
+
+      // --- SPAWN GROUND ITEMS FOR LEVEL ---
+      function spawnItemsForLevel(level) {
+        items = [];
+        const count = 12 + level * 2;
+        const safeMargin = 70;
+
+        function checkOverlap(x, y, r) {
+          return items.some(it => {
+            const dx = it.x - x;
+            const dy = it.y - y;
+            return Math.sqrt(dx * dx + dy * dy) < it.radius + r + 24;
+          });
+        }
+
+        function createItem(typeDef, forceX, forceY) {
+          let x, y, tries = 0;
+          do {
+            x = forceX || safeMargin + Math.random() * (W - safeMargin * 2);
+            y = forceY || 180 + Math.random() * (H - 220);
+            tries++;
+          } while (checkOverlap(x, y, typeDef.radius) && tries < 60);
+
+          let val = typeDef.value;
+          if (typeDef.type === 'diamond' && STATE.diamondPolish) {
+            val += 250;
+          }
+
+          items.push({
+            ...typeDef,
+            value: val,
+            x: x,
+            y: y,
+            active: true
+          });
+        }
+
+        // Guaranteed items
+        createItem(ITEM_TYPES.DIAMOND);
+        createItem(ITEM_TYPES.GOLD_L);
+        createItem(ITEM_TYPES.GOLD_M);
+        createItem(ITEM_TYPES.GOLD_S);
+        createItem(ITEM_TYPES.TNT);
+        createItem(ITEM_TYPES.MYSTERY);
+
+        // Fill remaining based on level
+        for (let i = 0; i < count; i++) {
+          const rand = Math.random();
+          if (rand < 0.22) createItem(ITEM_TYPES.GOLD_S);
+          else if (rand < 0.42) createItem(ITEM_TYPES.GOLD_M);
+          else if (rand < 0.54) createItem(ITEM_TYPES.GOLD_L);
+          else if (rand < 0.72) createItem(ITEM_TYPES.ROCK_S);
+          else if (rand < 0.86) createItem(ITEM_TYPES.ROCK_L);
+          else if (rand < 0.93) createItem(ITEM_TYPES.DIAMOND);
+          else createItem(ITEM_TYPES.MYSTERY);
+        }
+      }
+
+      // --- HOOK MECHANICS ---
+      function shootHook() {
+        if (hook.state !== 'SWING' || !STATE.isPlaying || STATE.isPaused) return;
+        hook.state = 'SHOOT';
+        hook.speed = hook.baseSpeed;
+        hook.caughtItem = null;
+        playSfx('shoot');
+      }
+
+      function useDynamite() {
+        if (!STATE.isPlaying || STATE.isPaused) return;
+        if (STATE.dynamite <= 0) return;
+        if (hook.state !== 'REWIND' || !hook.caughtItem) return;
+
+        STATE.dynamite--;
+        updateHud();
+        playSfx('tnt');
+
+        createExplosion(hook.caughtItem.x, hook.caughtItem.y);
+        addFloatingText('NỔ! 💥', hook.caughtItem.x, hook.caughtItem.y, '#FF4742');
+
+        hook.caughtItem = null;
+        hook.speed = hook.baseSpeed * (STATE.strengthDrink ? 2.5 : 2.0);
+      }
+
+      function createExplosion(x, y) {
+        for (let i = 0; i < 30; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const spd = 2 + Math.random() * 6;
+          particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            radius: 3 + Math.random() * 5,
+            color: ['#FF3B30', '#FF9500', '#FFCC00', '#FFFFFF'][Math.floor(Math.random() * 4)],
+            life: 1.0,
+            decay: 0.03 + Math.random() * 0.02
+          });
+        }
+      }
+
+      function createSparkles(x, y, color) {
+        for (let i = 0; i < 18; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const spd = 1.5 + Math.random() * 4;
+          particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd - 1,
+            radius: 2.5 + Math.random() * 3,
+            color: color || '#FFD214',
+            life: 1.0,
+            decay: 0.035
+          });
+        }
+      }
+
+      function addFloatingText(text, x, y, color) {
+        floatingTexts.push({
+          text: text,
+          x: x,
+          y: y,
+          vy: -1.6,
+          color: color || '#FFD214',
+          alpha: 1.0
+        });
+      }
+
+      // --- UPDATE LOOP ---
+      function update() {
+        if (!STATE.isPlaying || STATE.isPaused) return;
+
+        // 1. Hook motion
+        if (hook.state === 'SWING') {
+          hook.angle += hook.angleSpeed * hook.angleDir;
+          if (hook.angle > hook.maxAngle) {
+            hook.angle = hook.maxAngle;
+            hook.angleDir = -1;
+          } else if (hook.angle < -hook.maxAngle) {
+            hook.angle = -hook.maxAngle;
+            hook.angleDir = 1;
+          }
+          hook.x = MINER_X + Math.sin(hook.angle) * hook.length;
+          hook.y = MINER_Y + Math.cos(hook.angle) * hook.length;
+        } else if (hook.state === 'SHOOT') {
+          hook.length += hook.speed;
+          hook.x = MINER_X + Math.sin(hook.angle) * hook.length;
+          hook.y = MINER_Y + Math.cos(hook.angle) * hook.length;
+
+          // Wall / Bottom hit
+          if (hook.x <= 15 || hook.x >= W - 15 || hook.y >= H - 15 || hook.length >= hook.maxLen) {
+            hook.state = 'REWIND';
+            playSfx('catch');
+          }
+
+          // Check collisions with ground items
+          for (let it of items) {
+            if (!it.active) continue;
+            const dx = hook.x - it.x;
+            const dy = hook.y - it.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < it.radius + 12) {
+              it.active = false;
+              hook.caughtItem = it;
+              hook.state = 'REWIND';
+              playSfx('catch');
+
+              // If hit TNT
+              if (it.type === 'tnt') {
+                playSfx('tnt');
+                createExplosion(it.x, it.y);
+                // Explode nearby items
+                items.forEach(other => {
+                  if (other.active) {
+                    const odx = other.x - it.x;
+                    const ody = other.y - it.y;
+                    if (Math.sqrt(odx * odx + ody * ody) < 130) {
+                      other.active = false;
+                      createExplosion(other.x, other.y);
+                    }
+                  }
+                });
+                hook.caughtItem = null;
+                hook.speed = hook.baseSpeed * 1.5;
+                addFloatingText('BÙM! 💣', it.x, it.y, '#FF4742');
+              }
+              break;
+            }
+          }
+        } else if (hook.state === 'REWIND') {
+          let rewindSpeed = hook.baseSpeed;
+          if (hook.caughtItem) {
+            let weightFactor = hook.caughtItem.weight;
+            if (STATE.strengthDrink) weightFactor *= 0.45;
+            rewindSpeed = Math.max(2.2, hook.baseSpeed / weightFactor);
+
+            // Item follows claw
+            hook.caughtItem.x = hook.x;
+            hook.caughtItem.y = hook.y + hook.caughtItem.radius * 0.7;
+          }
+
+          hook.length -= rewindSpeed;
+          hook.x = MINER_X + Math.sin(hook.angle) * hook.length;
+          hook.y = MINER_Y + Math.cos(hook.angle) * hook.length;
+
+          // Back to miner
+          if (hook.length <= hook.minLen) {
+            hook.length = hook.minLen;
+            hook.state = 'SWING';
+
+            if (hook.caughtItem) {
+              const it = hook.caughtItem;
+              let gainVal = it.value;
+
+              // Mystery bag bonus logic
+              if (it.type === 'mystery') {
+                const roll = Math.random();
+                if (roll < 0.25) {
+                  gainVal = 700;
+                  addFloatingText('+$700 SIÊU MAY MẮN! 🍀', MINER_X, MINER_Y - 20, '#53F285');
+                } else if (roll < 0.5) {
+                  STATE.dynamite += 2;
+                  gainVal = 50;
+                  updateHud();
+                  addFloatingText('+2 THÙNG MÌN! 🧨', MINER_X, MINER_Y - 20, '#FF6B4A');
+                } else if (roll < 0.75) {
+                  STATE.strengthDrink = true;
+                  gainVal = 100;
+                  addFloatingText('NƯỚC TĂNG LỰC! ⚡', MINER_X, MINER_Y - 20, '#FFD214');
+                } else {
+                  gainVal = 200;
+                  addFloatingText('+$200', MINER_X, MINER_Y - 20, '#FFD214');
+                }
+              } else {
+                addFloatingText(`+$${gainVal}`, MINER_X, MINER_Y - 20, it.type.includes('gold') || it.type === 'diamond' ? '#FFD214' : '#E0D0C0');
+              }
+
+              STATE.score += gainVal;
+              updateHud();
+
+              if (it.type.includes('gold') || it.type === 'diamond' || it.type === 'mystery') {
+                playSfx('gold');
+                createSparkles(MINER_X, MINER_Y - 10, it.color);
+              } else {
+                playSfx('rock');
+              }
+              hook.caughtItem = null;
+            }
+          }
+        }
+
+        // 2. Particles update
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= p.decay;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // 3. Floating texts update
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          ft.y += ft.vy;
+          ft.alpha -= 0.02;
+          if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+        }
+      }
+
+      // --- DRAW RENDERING ---
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // 1. Sky & Surface
+        ctx.fillStyle = '#65B8F6';
+        ctx.fillRect(0, 0, W, 108);
+
+        // Sun
+        ctx.fillStyle = '#FFDD55';
+        ctx.beginPath();
+        ctx.arc(880, 48, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ground layer (Grass & Dirt)
+        ctx.fillStyle = '#4CAE4F';
+        ctx.fillRect(0, 102, W, 14);
+
+        ctx.fillStyle = '#8B5A2B';
+        ctx.fillRect(0, 116, W, 18);
+
+        // 2. Underground Cave
+        const grad = ctx.createLinearGradient(0, 134, 0, H);
+        grad.addColorStop(0, '#26160B');
+        grad.addColorStop(1, '#150A04');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 134, W, H - 134);
+
+        // Subtle cave textures
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        for (let y = 160; y < H; y += 42) {
+          ctx.fillRect(0, y, W, 2);
+        }
+
+        // 3. Draw Items
+        items.forEach(it => {
+          if (!it.active && hook.caughtItem !== it) return;
+
+          ctx.save();
+          ctx.translate(it.x, it.y);
+
+          if (it.type.includes('gold')) {
+            // Gold nugget with facets & shine
+            ctx.fillStyle = it.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, it.radius, it.radius * 0.82, Math.PI * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#B37D00';
+            ctx.stroke();
+
+            // Facet gleam
+            ctx.fillStyle = '#FFF5B8';
+            ctx.beginPath();
+            ctx.ellipse(-it.radius * 0.35, -it.radius * 0.3, it.radius * 0.35, it.radius * 0.22, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (it.type.includes('rock')) {
+            // Rugged rock boulder
+            ctx.fillStyle = it.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, it.radius, it.radius * 0.9, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#4A4641';
+            ctx.stroke();
+
+            // Cracks
+            ctx.strokeStyle = '#3A3733';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-it.radius * 0.4, -it.radius * 0.2);
+            ctx.lineTo(it.radius * 0.2, it.radius * 0.3);
+            ctx.stroke();
+          } else if (it.type === 'diamond') {
+            // Sparkling diamond
+            const r = it.radius;
+            ctx.fillStyle = '#55F6FF';
+            ctx.beginPath();
+            ctx.moveTo(0, -r * 1.4);
+            ctx.lineTo(r * 1.2, -r * 0.3);
+            ctx.lineTo(0, r * 1.4);
+            ctx.lineTo(-r * 1.2, -r * 0.3);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.stroke();
+
+            // Diamond shine
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(-2, -3, 3, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (it.type === 'tnt') {
+            // Red TNT barrel
+            const r = it.radius;
+            ctx.fillStyle = '#E52B18';
+            ctx.fillRect(-r, -r * 1.2, r * 2, r * 2.4);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(-r, -r * 0.4, r * 2, r * 0.8);
+
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('TNT', 0, 0);
+
+            // Fuse
+            ctx.strokeStyle = '#D4A373';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -r * 1.2);
+            ctx.lineTo(4, -r * 1.6);
+            ctx.stroke();
+          } else if (it.type === 'mystery') {
+            // Mystery Grab Bag
+            const r = it.radius;
+            ctx.fillStyle = '#C87236';
+            ctx.beginPath();
+            ctx.arc(0, r * 0.2, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tied top
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(-r * 0.45, -r * 1.1, r * 0.9, r * 0.5);
+
+            ctx.fillStyle = '#FFD214';
+            ctx.font = 'bold 22px Fredoka, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('?', 0, r * 0.2);
+          }
+
+          ctx.restore();
+        });
+
+        // 4. Draw Rope / Cable
+        ctx.strokeStyle = '#B38B59';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(MINER_X, MINER_Y);
+        ctx.lineTo(hook.x, hook.y);
+        ctx.stroke();
+
+        // 5. Draw Steel Claw Hook
+        ctx.save();
+        ctx.translate(hook.x, hook.y);
+        ctx.rotate(-hook.angle);
+
+        ctx.fillStyle = '#999999';
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#444444';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+
+        // Left prong
+        ctx.beginPath();
+        ctx.moveTo(-6, 0);
+        ctx.lineTo(-14, 14);
+        ctx.lineTo(-8, 22);
+        ctx.stroke();
+
+        // Right prong
+        ctx.beginPath();
+        ctx.moveTo(6, 0);
+        ctx.lineTo(14, 14);
+        ctx.lineTo(8, 22);
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 6. Miner Character & Winch Cart on surface
+        drawMinerCart();
+
+        // 7. Particles
+        particles.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // 8. Floating numbers (+$$$)
+        floatingTexts.forEach(ft => {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, ft.alpha);
+          ctx.fillStyle = ft.color;
+          ctx.font = 'bold 24px Fredoka, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 6;
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.restore();
+        });
+      }
+
+      function drawMinerCart() {
+        // Minecart body
+        ctx.fillStyle = '#7A431D';
+        ctx.fillRect(MINER_X - 32, MINER_Y - 26, 64, 28);
+        ctx.strokeStyle = '#3C1D06';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(MINER_X - 32, MINER_Y - 26, 64, 28);
+
+        // Cart Wheels
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.arc(MINER_X - 22, MINER_Y + 2, 7, 0, Math.PI * 2);
+        ctx.arc(MINER_X + 22, MINER_Y + 2, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Miner Character (Head & Hat)
+        // Body
+        ctx.fillStyle = '#2C64B4';
+        ctx.fillRect(MINER_X - 14, MINER_Y - 48, 28, 22);
+
+        // Head
+        ctx.fillStyle = '#FCD2A4';
+        ctx.beginPath();
+        ctx.arc(MINER_X, MINER_Y - 56, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White Beard
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath();
+        ctx.arc(MINER_X, MINER_Y - 51, 10, 0, Math.PI);
+        ctx.fill();
+
+        // Yellow Miner Helmet with Light
+        ctx.fillStyle = '#FFC107';
+        ctx.beginPath();
+        ctx.arc(MINER_X, MINER_Y - 62, 14, Math.PI, 0);
+        ctx.fill();
+        ctx.fillRect(MINER_X - 16, MINER_Y - 63, 32, 5);
+
+        // Headlamp gleam
+        ctx.fillStyle = '#FFFDE0';
+        ctx.beginPath();
+        ctx.arc(MINER_X, MINER_Y - 61, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Reel pulley wheel
+        ctx.fillStyle = '#444';
+        ctx.beginPath();
+        ctx.arc(MINER_X, MINER_Y - 4, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFD214';
+        ctx.beginPath();
+        ctx.arc(MINER_X, MINER_Y - 4, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // --- GAME FLOW LOGIC ---
+      function updateHud() {
+        document.getElementById('val-score').textContent = `$${STATE.score}`;
+        document.getElementById('val-target').textContent = `$${STATE.targetScore}`;
+        document.getElementById('val-time').textContent = `${STATE.timeLeft}s`;
+        document.getElementById('val-dynamite').textContent = `x${STATE.dynamite}`;
+      }
+
+      function startLevel(lvl) {
+        STATE.level = lvl;
+        STATE.targetScore = 650 + (lvl - 1) * 550;
+        STATE.timeLeft = 60;
+        STATE.isPlaying = true;
+        STATE.isPaused = false;
+
+        hook.length = hook.minLen;
+        hook.state = 'SWING';
+        hook.caughtItem = null;
+
+        spawnItemsForLevel(lvl);
+        updateHud();
+
+        // Hide overlays
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('screen-shop').classList.add('hidden');
+        document.getElementById('screen-gameover').classList.add('hidden');
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          if (!STATE.isPlaying || STATE.isPaused) return;
+          STATE.timeLeft--;
+          updateHud();
+
+          if (STATE.timeLeft <= 0) {
+            clearInterval(timerInterval);
+            endLevel();
+          }
+        }, 1000);
+      }
+
+      function endLevel() {
+        STATE.isPlaying = false;
+
+        if (STATE.score >= STATE.targetScore) {
+          // Level Completed! Open Shop
+          playSfx('win');
+          showShop();
+        } else {
+          // Game Over
+          playSfx('tnt');
+          document.getElementById('gameover-desc').innerHTML =
+            `Bạn đạt được <b>$${STATE.score}</b>, thiếu $${STATE.targetScore - STATE.score} để đạt mục tiêu ngày ${STATE.level}!`;
+          document.getElementById('screen-gameover').classList.remove('hidden');
+        }
+      }
+
+      function showShop() {
+        document.getElementById('shop-summary').innerHTML =
+          `Hoàn thành <b>Ngày ${STATE.level}</b> xuất sắc! Bạn hiện có <b>$${STATE.score}</b> (Mục tiêu ngày tới: $${STATE.targetScore + 550}).`;
+
+        const shopItems = [
+          {
+            id: 'dyn',
+            name: 'Thùng Thuốc Nổ',
+            icon: '🧨',
+            desc: 'Phá hủy đá nặng đang kéo ngay lập tức',
+            price: 150,
+            buy: () => { STATE.dynamite++; }
+          },
+          {
+            id: 'str',
+            name: 'Nước Tăng Lực',
+            icon: '⚡',
+            desc: 'Kéo tất cả các vật nặng nhanh hơn 100%',
+            price: 240,
+            buy: () => { STATE.strengthDrink = true; }
+          },
+          {
+            id: 'dia',
+            name: 'Đánh Bóng Kim Cương',
+            icon: '💎',
+            desc: 'Tăng giá trị kim cương thêm +$250',
+            price: 200,
+            buy: () => { STATE.diamondPolish = true; }
+          }
+        ];
+
+        const container = document.getElementById('shop-items');
+        container.innerHTML = '';
+
+        shopItems.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'shop-card';
+          card.innerHTML = `
+            <div class="shop-icon">${item.icon}</div>
+            <div class="shop-name">${item.name}</div>
+            <div class="shop-desc">${item.desc}</div>
+            <button class="btn-buy" ${STATE.score < item.price ? 'disabled' : ''}>
+              Mua: $${item.price}
+            </button>
+          `;
+          const btn = card.querySelector('.btn-buy');
+          btn.onclick = () => {
+            if (STATE.score >= item.price) {
+              STATE.score -= item.price;
+              item.buy();
+              playSfx('gold');
+              updateHud();
+              card.classList.add('bought');
+              btn.textContent = 'Đã mua ✓';
+              btn.disabled = true;
+            }
+          };
+          container.appendChild(card);
+        });
+
+        document.getElementById('screen-shop').classList.remove('hidden');
+      }
+
+      // --- MAIN ANIMATION LOOP ---
+      function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      // --- USER INPUT EVENT LISTENERS ---
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'ArrowDown' || e.code === 'Space') {
+          e.preventDefault();
+          shootHook();
+        } else if (e.code === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+          e.preventDefault();
+          useDynamite();
+        }
+      });
+
+      // Canvas click to drop
+      canvas.addEventListener('pointerdown', (e) => {
+        shootHook();
+      });
+
+      // Mobile Buttons
+      document.getElementById('btn-drop').addEventListener('click', (e) => {
+        e.stopPropagation();
+        shootHook();
+      });
+
+      document.getElementById('btn-dynamite').addEventListener('click', (e) => {
+        e.stopPropagation();
+        useDynamite();
+      });
+
+      // Audio Mute toggle
+      document.getElementById('btn-audio').addEventListener('click', (e) => {
+        e.stopPropagation();
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-audio').textContent = soundEnabled ? '🔊' : '🔇';
+      });
+
+      // Overlay Screen Buttons
+      document.getElementById('btn-play-start').addEventListener('click', () => {
+        startLevel(1);
+      });
+
+      document.getElementById('btn-next-level').addEventListener('click', () => {
+        startLevel(STATE.level + 1);
+      });
+
+      document.getElementById('btn-restart').addEventListener('click', () => {
+        STATE.score = 0;
+        STATE.dynamite = 1;
+        STATE.strengthDrink = false;
+        STATE.diamondPolish = false;
+        startLevel(1);
+      });
+
+      // Start loop
+      loop();
+    })();
+  </script>
+</body>
+</html>
